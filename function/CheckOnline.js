@@ -9,14 +9,16 @@ const checkOnline = async () => {
   for (let i = 0; ; i++) {
     const NotOnline = await Transfer.findOne({ online: false });
     if (NotOnline) {
-      const response = await axios.post(
-        `${process.env.URL}/stockIn`,
-        NotOnline
-      );
-      if (response.status === 200) {
+      try {
+        const response = await axios.post(
+          `${process.env.URL}/stockIn`,
+          NotOnline
+        );
         await Transfer.findByIdAndUpdate(NotOnline._id, {
           online: true,
         });
+      } catch (error) {
+        break;
       }
     } else {
       break;

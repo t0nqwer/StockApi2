@@ -21,6 +21,20 @@ app.use(cors());
 app.use("/stock", stockRoutes);
 app.use("/setting", settingRoutes);
 app.use("/store", storeRoutes);
+const date = new Date();
+
+console.log(
+  date.getDate(),
+  date.getMonth() + 1,
+  date.getFullYear(),
+  date.getHours(),
+  date.getMinutes(),
+  date.getSeconds(),
+  date.getMilliseconds(),
+  Date.now(),
+  performance.now(),
+  performance.now()
+);
 connectToDatabase();
 const port = parseInt(process.env.PORT) || 8585;
 app.listen(port, () => {

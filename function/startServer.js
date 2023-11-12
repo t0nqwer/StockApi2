@@ -4,6 +4,7 @@ import Store from "../models/store.js";
 
 export default async function startServer() {
   try {
+    // const resetStock = await Product.updateMany({}, { stock: 0 });
     const response = await axios.get(`${process.env.URL}/startApp`);
     // await Product.deleteMany({});
     // await Product.insertMany(response.data.data);

@@ -3,6 +3,7 @@ import axios from "axios";
 import Transfer from "../models/transfer.js";
 import Store from "../models/store.js";
 import DraftTransfer from "../models/draftTransfer.js";
+import { uid } from "uid";
 export const getProducts = async (req, res) => {
   const { name, code, price, isStock, barcode } = req.query;
   try {
@@ -50,6 +51,7 @@ export const stockIn = async (req, res) => {
     );
     await Promise.all(addProduct);
     const transfer = await Transfer.create({
+      _id: Date.now(),
       from: "Khwanta",
       to: "ห้องสต๊อคศูนย์การเรียนรู้ขวัญตา",
       product: req.body.map((item) => ({
@@ -88,13 +90,15 @@ export const GetStore = async (req, res) => {
 export const exportStock = async (req, res) => {
   console.log(req.body);
   const { store, products } = req.body;
+  const Id = Date.now();
   try {
     const transfer = await Transfer.create({
+      _id: Id,
       from: "ห้องสต๊อคศูนย์การเรียนรู้ขวัญตา",
       to: store,
       product: products.map((item) => ({
         barcode: item._id,
-        qty: item.exportqty,
+        qty: item.qty,
       })),
       status: "transport",
       type: "export",
@@ -102,11 +106,9 @@ export const exportStock = async (req, res) => {
     if (transfer) {
       const updateProduct = products.map(
         async (item) =>
-          await Product.findByIdAndUpdate(
-            item._id,
-            { $inc: { stock: -item.exportqty } },
-            { new: true }
-          )
+          await Product.findByIdAndUpdate(item._id, {
+            $inc: { stock: -item.qty },
+          })
       );
       await Promise.all(updateProduct);
     }
@@ -124,20 +126,33 @@ export const exportStock = async (req, res) => {
       res.status(200).json("success");
     }
   } catch (error) {
+    console.log(error);
+    await Transfer.findByIdAndDelete(Id);
     res.status(400).json({ message: error.message });
   }
 };
 
 export const saveExportStock = async (req, res) => {
   console.log(req.body);
-  const { store, products } = req.body;
+  const { store, products, id } = req.body;
   try {
+    if (id !== "new") {
+      const transfer = await DraftTransfer.findByIdAndUpdate(id, {
+        to: store,
+        product: products.map((item) => ({
+          barcode: item._id,
+          qty: item.qty,
+        })),
+      });
+      return res.status(200).json("success");
+    }
     const transfer = await DraftTransfer.create({
+      _id: Date.now(),
       from: "ห้องสต๊อคศูนย์การเรียนรู้ขวัญตา",
       to: store,
       product: products.map((item) => ({
         barcode: item._id,
-        qty: item.exportqty,
+        qty: item.qty,
       })),
       type: "export",
     });
@@ -154,6 +169,39 @@ export const exportList = async (req, res) => {
     res.status(200).json([...Drafttransfer, ...transfer]);
   } catch (error) {
     console.log(error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteExport = async (req, res, next) => {
+  const { id } = req.body;
+  try {
+    const transfer = await Transfer.findById(id);
+    if (!transfer) {
+      await DraftTransfer.findByIdAndDelete(id);
+      return next();
+    }
+    const promise = transfer.product.map(async (item) => {
+      await Product.findByIdAndUpdate(item.barcode, {
+        $inc: { stock: item.qty },
+      });
+    });
+
+    Promise.all(promise).then(async () => {
+      await Transfer.findByIdAndUpdate(id, { status: "cancel" });
+      next();
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const fetchExportById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const transfer = await DraftTransfer.findById(id);
+    res.status(200).json(transfer);
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
