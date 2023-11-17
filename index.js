@@ -9,6 +9,7 @@ import stockRoutes from "./routes/stockRoutes.js";
 import settingRoutes from "./routes/settingRoutes.js";
 import storeRoutes from "./routes/storeRoutes.js";
 import "./function/CheckOnline.js";
+import "./Socket.io/client.js";
 dotenv.config();
 startServer();
 const app = express();
@@ -37,6 +38,6 @@ console.log(
 );
 connectToDatabase();
 const port = parseInt(process.env.PORT) || 8585;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`helloworld: listening on http://localhost:${port}`);
 });
