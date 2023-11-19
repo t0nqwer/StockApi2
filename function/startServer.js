@@ -17,10 +17,15 @@ export default async function startServer() {
     const newProductData = response.data.data.filter((item) =>
       difference.includes(item._id)
     );
+
     await Product.deleteMany({ _id: { $in: deleteProduct } });
     await Product.insertMany(newProductData);
     await Store.deleteMany({});
     await Store.insertMany(response.data.stores);
+    const PromisePrice = response.data.data.map(async (item) => {
+      await Product.updateOne({ _id: item._id }, { price: item.price });
+    });
+    await Promise.all(PromisePrice);
     console.log("helloworld: server started");
   } catch (error) {}
 }

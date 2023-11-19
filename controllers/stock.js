@@ -4,6 +4,7 @@ import Transfer from "../models/transfer.js";
 import Store from "../models/store.js";
 import DraftTransfer from "../models/draftTransfer.js";
 import { uid } from "uid";
+import { ServerSocket } from "../socket.io/server.js";
 export const getProducts = async (req, res) => {
   const { name, code, price, isStock, barcode } = req.query;
   try {
@@ -18,7 +19,6 @@ export const getProducts = async (req, res) => {
           { _id: { $regex: barcode, $options: "i" } },
         ],
       });
-      console.log(product.length);
 
       res.status(200).json(product);
     } else {
@@ -30,7 +30,7 @@ export const getProducts = async (req, res) => {
           { _id: { $regex: barcode, $options: "i" } },
         ],
       });
-      console.log(product.length);
+
       res.status(200).json(product);
     }
   } catch (error) {

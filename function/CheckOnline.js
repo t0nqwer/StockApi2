@@ -7,7 +7,10 @@ const { scheduleJob } = pkg;
 const checkOnline = async () => {
   console.log("helloworld: checking online");
   for (let i = 0; ; i++) {
-    const NotOnline = await Transfer.findOne({ online: false });
+    const NotOnline = await Transfer.findOne({
+      online: false,
+      status: { $ne: "cancel" },
+    });
     if (NotOnline) {
       try {
         const response = await axios.post(
