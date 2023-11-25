@@ -3,12 +3,16 @@ const Url = "http://localhost:7070";
 import { ServerSocket } from "./server.js";
 import { DeleteProduct, NewProduct, PriceChange } from "./socketAction.js";
 import axios from "axios";
+const url2 = "http://192.168.0.252:7070";
+import Setting from "../models/setting.js";
 
-export const socket = io(Url, {});
+export const socket = io(url2, {}).connect();
 
-socket.on("connect", () => {
-  console.log("connected to server");
+socket.on("connect", async () => {
+  const setting = await Setting.findOne();
+  socket.emit("connectname", setting.warehouseName);
 });
+
 socket.on("newProduct", (data) => {
   console.log(data, "newProduct");
   NewProduct(data);

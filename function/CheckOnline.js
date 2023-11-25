@@ -12,16 +12,31 @@ const checkOnline = async () => {
       status: { $ne: "cancel" },
     });
     if (NotOnline) {
-      try {
-        const response = await axios.post(
-          `${process.env.URL}/stockIn`,
-          NotOnline
-        );
-        await Transfer.findByIdAndUpdate(NotOnline._id, {
-          online: true,
-        });
-      } catch (error) {
-        break;
+      if (NotOnline.type === "manufacture") {
+        try {
+          const response = await axios.post(
+            `${process.env.URL}/stockIn`,
+            NotOnline
+          );
+          await Transfer.findByIdAndUpdate(NotOnline._id, {
+            online: true,
+          });
+        } catch (error) {
+          break;
+        }
+      }
+      if (NotOnline.type === "transfer") {
+        try {
+          const response = await axios.post(
+            `${process.env.URL}/transfer`,
+            NotOnline
+          );
+          await Transfer.findByIdAndUpdate(NotOnline._id, {
+            online: true,
+          });
+        } catch (error) {
+          break;
+        }
       }
     } else {
       break;

@@ -1,13 +1,24 @@
 import axios from "axios";
 import Product from "../models/product.js";
 import Store from "../models/store.js";
+import Setting from "../models/setting.js";
 
 export default async function startServer() {
   try {
     // const resetStock = await Product.updateMany({}, { stock: 0 });
-    const response = await axios.get(`${process.env.URL}/startApp`);
+    await Setting.findOneAndUpdate(
+      {},
+      { warehouseName: "ห้องสต๊อคศูนย์การเรียนรู้ขวัญตา" },
+      { upsert: true }
+    );
+    const setting = await Setting.findOne();
+    const response = await axios.post(`${process.env.URL}/startApp`, {
+      name: setting.warehouseName,
+    });
     // await Product.deleteMany({});
     // await Product.insertMany(response.data.data);
+    // const setting = await Setting.findOne();
+    // console.log(setting);
 
     const product = await Product.find().select("_id");
     const currentProduct = product.map((item) => item._id);
@@ -27,5 +38,7 @@ export default async function startServer() {
     });
     await Promise.all(PromisePrice);
     console.log("helloworld: server started");
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
 }

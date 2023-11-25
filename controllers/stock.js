@@ -3,6 +3,7 @@ import axios from "axios";
 import Transfer from "../models/transfer.js";
 import Store from "../models/store.js";
 import DraftTransfer from "../models/draftTransfer.js";
+import Setting from "../models/setting.js";
 import { uid } from "uid";
 import { ServerSocket } from "../socket.io/server.js";
 export const getProducts = async (req, res) => {
@@ -88,20 +89,20 @@ export const GetStore = async (req, res) => {
   } catch (error) {}
 };
 export const exportStock = async (req, res) => {
-  console.log(req.body);
   const { store, products } = req.body;
   const Id = Date.now();
   try {
+    const SettingData = await Setting.findOne();
     const transfer = await Transfer.create({
       _id: Id,
-      from: "ห้องสต๊อคศูนย์การเรียนรู้ขวัญตา",
+      from: SettingData.warehouseName,
       to: store,
       product: products.map((item) => ({
         barcode: item._id,
         qty: item.qty,
       })),
       status: "transport",
-      type: "export",
+      type: "transfer",
     });
     if (transfer) {
       const updateProduct = products.map(
@@ -146,9 +147,11 @@ export const saveExportStock = async (req, res) => {
       });
       return res.status(200).json("success");
     }
+    const SettingData = await Setting.findOne();
+
     const transfer = await DraftTransfer.create({
       _id: Date.now(),
-      from: "ห้องสต๊อคศูนย์การเรียนรู้ขวัญตา",
+      from: SettingData.warehouseName,
       to: store,
       product: products.map((item) => ({
         barcode: item._id,
@@ -164,8 +167,15 @@ export const saveExportStock = async (req, res) => {
 
 export const exportList = async (req, res) => {
   try {
-    const Drafttransfer = await DraftTransfer.find({ type: "export" });
-    const transfer = await Transfer.find({ type: "export" });
+    const SettingData = await Setting.findOne();
+    const Drafttransfer = await DraftTransfer.find({
+      type: "transfer",
+      from: SettingData.warehouseName,
+    });
+    const transfer = await Transfer.find({
+      type: "transfer",
+      from: SettingData.warehouseName,
+    });
     res.status(200).json([...Drafttransfer, ...transfer]);
   } catch (error) {
     console.log(error);
