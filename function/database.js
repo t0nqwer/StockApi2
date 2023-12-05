@@ -15,6 +15,6 @@ export const connectToDatabase = async () => {
     isConnected = true;
     console.log("Mongoose connected");
   } catch (error) {
-    console.log(error);
+    console.log(error.message);
   }
 };
