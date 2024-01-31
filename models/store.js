@@ -7,6 +7,7 @@ const storeSchema = new Schema({
   openDate: { type: Date, required: true },
   closeDate: { type: Date },
   type: { type: String, required: true },
+  storeRandomId: { type: String, required: true },
 });
 
 const Store = model("Store", storeSchema);

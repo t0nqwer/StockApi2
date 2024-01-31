@@ -12,6 +12,10 @@ export default async function startServer() {
       { upsert: true }
     );
     const setting = await Setting.findOne();
+    await Setting.findOneAndUpdate(
+      { _id: setting._id },
+      { PrinterName: "EPSON L6270 Series (Copy 1)" }
+    );
     const response = await axios.post(`${process.env.URL}/startApp`, {
       name: setting.warehouseName,
     });

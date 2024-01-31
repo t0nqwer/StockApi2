@@ -6,6 +6,7 @@ import DraftTransfer from "../models/draftTransfer.js";
 import Setting from "../models/setting.js";
 import { uid } from "uid";
 import { ServerSocket } from "../socket.io/server.js";
+import moment from "moment-timezone";
 export const getProducts = async (req, res) => {
   const { name, code, price, isStock, barcode } = req.query;
   try {
@@ -89,12 +90,18 @@ export const GetStore = async (req, res) => {
   } catch (error) {}
 };
 export const exportStock = async (req, res) => {
-  const { store, products } = req.body;
-  const Id = Date.now();
+  const { store, products, id } = req.body;
+  const Id = new Date();
+  const idtext = `${Id.getFullYear().toString().slice(-2)}${
+    Id.getMonth() + 1
+  }${Id.getDate()}${Id.getHours()}${Id.getMinutes()}${Id.getSeconds()}`;
+
+  const SettingData = await Setting.findOne();
+  const FromID = await Store.findOne({ name: SettingData.warehouseName });
+  const ToID = await Store.findOne({ name: store });
   try {
-    const SettingData = await Setting.findOne();
     const transfer = await Transfer.create({
-      _id: Id,
+      _id: `${FromID.storeRandomId}-${ToID.storeRandomId}-${idtext}`,
       from: SettingData.warehouseName,
       to: store,
       product: products.map((item) => ({
@@ -114,16 +121,22 @@ export const exportStock = async (req, res) => {
       await Promise.all(updateProduct);
     }
     try {
-      console.log(transfer);
+      console.log(transfer, "transfer");
       const { data } = await axios.post(
-        `${process.env.URL}/stockout`,
+        `${process.env.URL}/transfer`,
         transfer
       );
       await Transfer.findByIdAndUpdate(transfer._id, {
         online: true,
       });
+      if (id !== "new") {
+        await DraftTransfer.findByIdAndDelete(id);
+      }
       res.status(200).json("success");
     } catch (error) {
+      if (id !== "new") {
+        await DraftTransfer.findByIdAndDelete(id);
+      }
       res.status(200).json("success");
     }
   } catch (error) {
@@ -159,6 +172,7 @@ export const saveExportStock = async (req, res) => {
       })),
       type: "export",
     });
+
     res.status(200).json("success");
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -168,17 +182,10 @@ export const saveExportStock = async (req, res) => {
 export const exportList = async (req, res) => {
   try {
     const SettingData = await Setting.findOne();
-    const Drafttransfer = await DraftTransfer.find({
-      type: "transfer",
-      from: SettingData.warehouseName,
-    });
-    const transfer = await Transfer.find({
-      type: "transfer",
-      from: SettingData.warehouseName,
-    });
+    const Drafttransfer = await DraftTransfer.find({});
+    const transfer = await Transfer.find({ status: { $ne: "cancel" } });
     res.status(200).json([...Drafttransfer, ...transfer]);
   } catch (error) {
-    console.log(error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -196,9 +203,12 @@ export const deleteExport = async (req, res, next) => {
         $inc: { stock: item.qty },
       });
     });
-
     Promise.all(promise).then(async () => {
       await Transfer.findByIdAndUpdate(id, { status: "cancel" });
+      const { data } = await axios.put(`${process.env.URL}/transfer`, {
+        id: id,
+        status: "cancel",
+      });
       next();
     });
   } catch (error) {
@@ -212,6 +222,52 @@ export const fetchExportById = async (req, res) => {
     const transfer = await DraftTransfer.findById(id);
     res.status(200).json(transfer);
   } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getPrintData = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const SettingData = await Setting.findOne();
+    const transfer = await Transfer.findById(id);
+    const Date = `${transfer.createAt.getDate()}/${
+      transfer.createAt.getMonth() + 1
+    }/${transfer.createAt.getFullYear()}`;
+    const from = await Store.findOne({ name: transfer.from });
+    const to = await Store.findOne({ name: transfer.to });
+    const productData = await Product.find({
+      _id: { $in: transfer.product.map((item) => item.barcode) },
+    });
+    const product = productData.map((item, i) => ({
+      no: i + 1,
+      name: item.name,
+      barcode: item._id,
+      qty: transfer.product.find((i) => i.barcode === item._id).qty,
+      price: item.price,
+      size: item.size ? item.size : "-",
+      code: item.design ? item.design : "-",
+      total:
+        item.price * transfer.product.find((i) => i.barcode === item._id).qty,
+    }));
+    const QtyTotal = product.reduce((a, b) => a + b.qty, 0);
+    const PriceTotal = product.reduce((a, b) => a + b.total, 0);
+    const printdata = {
+      from: from.name,
+      fromAddress: from.address,
+      to: to.name,
+      toAddress: to.address,
+      product: product,
+      QtyTotal: QtyTotal,
+      PriceTotal: PriceTotal,
+      transferId: transfer._id,
+      Date: Date,
+      Printer: SettingData.PrinterName,
+    };
+    res.status(200).json(printdata);
+  } catch (error) {
+    console.log(error);
     res.status(400).json({ message: error.message });
   }
 };
