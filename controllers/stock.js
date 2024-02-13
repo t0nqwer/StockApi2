@@ -183,7 +183,9 @@ export const exportList = async (req, res) => {
   try {
     const SettingData = await Setting.findOne();
     const Drafttransfer = await DraftTransfer.find({});
-    const transfer = await Transfer.find({ status: { $ne: "cancel" } });
+    const transfer = await Transfer.find({
+      $and: [{ status: { $ne: "cancel" } }, { type: "transfer" }],
+    });
     res.status(200).json([...Drafttransfer, ...transfer]);
   } catch (error) {
     res.status(400).json({ message: error.message });
