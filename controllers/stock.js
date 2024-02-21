@@ -122,16 +122,16 @@ export const exportStock = async (req, res) => {
     }
     try {
       console.log(transfer, "transfer");
-      const { data } = await axios.post(
-        `${process.env.URL}/transfer`,
-        transfer
-      );
-      await Transfer.findByIdAndUpdate(transfer._id, {
-        online: true,
-      });
-      if (id !== "new") {
-        await DraftTransfer.findByIdAndDelete(id);
-      }
+      // const { data } = await axios.post(
+      //   `${process.env.URL}/transfer`,
+      //   transfer
+      // );
+      // await Transfer.findByIdAndUpdate(transfer._id, {
+      //   online: true,
+      // });
+      // if (id !== "new") {
+      //   await DraftTransfer.findByIdAndDelete(id);
+      // }
       res.status(200).json("success");
     } catch (error) {
       if (id !== "new") {
@@ -140,7 +140,6 @@ export const exportStock = async (req, res) => {
       res.status(200).json("success");
     }
   } catch (error) {
-    console.log(error);
     await Transfer.findByIdAndDelete(Id);
     res.status(400).json({ message: error.message });
   }
